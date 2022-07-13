@@ -20,6 +20,7 @@ object ZIOExercise {
         case Right(v) => Right(f(v))})
     }
 
+    // E1 is the father of E, R1 is the son of R
     def flatMap[R1 <: R, E1 >: E, B](f: A => MyZIO[R1, E1, B]): MyZIO[R1, E1, B] = {
       MyZIO(r => unsafeRun(r) match {
         case Left(e) => Left(e)
