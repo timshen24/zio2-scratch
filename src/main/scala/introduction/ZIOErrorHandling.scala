@@ -32,7 +32,7 @@ object ZIOErrorHandling extends ZIOAppDefault {
     case _ => ZIO.succeed("Ignoring everything else")
   }
 
-  val aBetterAttempt: ZIO[Any, Nothing, RuntimeFlags] = anAttempt.orElse(ZIO.succeed(56))
+  val aBetterAttempt: ZIO[Any, Nothing, Int] = anAttempt.orElse(ZIO.succeed(56))
 
   val handleBoth: URIO[Any, String] = anAttempt.fold(ex => s"Something bad happened: $ex", value => s"Length of the string was $value")
 
