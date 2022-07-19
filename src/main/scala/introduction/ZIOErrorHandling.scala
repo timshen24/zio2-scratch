@@ -7,7 +7,7 @@ import java.net.NoRouteToHostException
 import scala.util.*
 
 object ZIOErrorHandling extends ZIOAppDefault {
-  // ZIOs can faile
+  // ZIOs can fail
   val aFailedZIO: IO[String, Nothing] = ZIO.fail("something went wrong")
   val failedWithThrowable: IO[RuntimeException, Nothing] = ZIO.fail(new RuntimeException("Boom!"))
   val failedWithDescription: ZIO[Any, String, Nothing] = failedWithThrowable.mapError(_.getMessage)
