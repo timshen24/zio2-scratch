@@ -1,64 +1,11 @@
 package introduction
 
-import zio._
+import introduction.entities.Entities.*
+import zio.*
+
+import java.util.concurrent.TimeUnit
 
 object ZIODependencies extends ZIOAppDefault {
-  // app to subscribe users to newsletter
-  case class User(name: String, email: String)
-
-  class UserSubscription(emailService: EmailService, userDatabase: UserDatabase) {
-    def subscribeUser(user: User): Task[Unit] = {
-      for {
-        _ <- emailService.email(user)
-        _ <- userDatabase.insert(user)
-      } yield ()
-    }
-  }
-
-  object UserSubscription {
-    def create(emailService: EmailService, userDatabase: UserDatabase) =
-      new UserSubscription(emailService, userDatabase)
-  }
-
-  class EmailService {
-    def email(user: User): Task[Unit] = ZIO.succeed(s"You" +
-      s"ve just subscribed, ${user.name}").unit
-  }
-
-  object EmailService {
-    def create(): EmailService = new EmailService
-  }
-
-  class UserDatabase(connectionPool: ConnectionPool) {
-    def insert(user: User): Task[Unit] = for {
-      conn <- connectionPool.get
-      _ <- conn.runQuery(s"insert into subscribers(name, email) values (${user.name}, ${user.email})")
-    } yield ()
-  }
-
-  object UserDatabase {
-    def create(connectionPool: ConnectionPool) =
-      new UserDatabase(connectionPool)
-  }
-
-  class ConnectionPool(nConnections: Int) {
-    def get: Task[Connection] =
-      ZIO.succeed(println("Acquired connection")) *> ZIO.succeed(Connection())
-  }
-
-  object ConnectionPool {
-    def create(nConnection: Int) =
-      new ConnectionPool(nConnection)
-  }
-
-  case class Connection() {
-    def runQuery(query: String): Task[Unit] = ZIO.succeed(println(s"Executing $query"))
-  }
-
-  object Connection {
-
-  }
-
   val subscriptionService: ZIO[Any, Nothing, UserSubscription] = ZIO.succeed { // Dependency injection
     UserSubscription.create(
       EmailService.create(),
@@ -84,7 +31,7 @@ object ZIODependencies extends ZIOAppDefault {
   } yield ()
 
   // risk leaking resources if you subscribe multiple users in the same effect program
-  val program = for {
+  val program: ZIO[Any, Throwable, Unit] = for {
     _ <- subscribe(User("Daniel", "daniel@rockthejvm.com"))
     _ <- subscribe(User("Bon Jovi", "jon@rockthejvm.com"))
   } yield ()
@@ -95,10 +42,29 @@ object ZIODependencies extends ZIOAppDefault {
     _ <- sub.subscribeUser(user)
   } yield ()
 
-  val program_v2 = for {
+  val program_v2: ZIO[UserSubscription, Throwable, Unit] = for {
     _ <- subscribe_v2(User("Daniel", "daniel@rockthejvm.com"))
     _ <- subscribe_v2(User("Bon Jovi", "jon@rockthejvm.com"))
   } yield ()
+
+  /**
+   * ZLayers
+   */
+  val connectionPoolLayer: ZLayer[Any, Nothing, ConnectionPool] = ZLayer.succeed(ConnectionPool.create(10))
+  // a layer that requires a dependency (high layer) can be built with ZLayer.fromFunction
+  // (and automatically fetch the function arguments and place them into the ZLayer's dependency/environment type argument)
+  val databaseLayer: ZLayer[ConnectionPool, Nothing, UserDatabase] = ZLayer.fromFunction(UserDatabase.create _)
+  val emailServiceLayer: ZLayer[Any, Nothing, EmailService] = ZLayer.succeed(EmailService.create())
+  val userSubscriptionServiceLayer: ZLayer[UserDatabase with EmailService, Nothing, UserSubscription] = ZLayer.fromFunction(UserSubscription.create _)
+
+  // composing layers
+  // vertical composition >>>
+  val databaseLayerFull: ZLayer[Any, Nothing, UserDatabase] = connectionPoolLayer >>> databaseLayer
+  // horizontal composition: combine dependencies of both layers and the values of both layers
+  val subscriptionRequirementsLayer: ZLayer[Any, Nothing, UserDatabase with EmailService] = databaseLayerFull ++ emailServiceLayer
+  // mix & match
+  val userSubscriptionLayer: ZLayer[Any, Nothing, UserSubscription] =
+    subscriptionRequirementsLayer >>> userSubscriptionServiceLayer
 
   /**
    * - we don't need to care about dependencies till the end of the world
@@ -108,7 +74,7 @@ object ZIODependencies extends ZIOAppDefault {
    * @return
    */
   override def run: ZIO[Any, Throwable, Unit] = /*subscribe(User("Daniel", "daniel@rockthejvm.com"))*/ {
-    program_v2.provideLayer(
+    /*program_v2.provideLayer(
       ZLayer.succeed(
         UserSubscription.create(
           EmailService.create(),
@@ -117,6 +83,46 @@ object ZIODependencies extends ZIOAppDefault {
           )
         )
       )
-    )
+    )*/
+    runnableProgram_v2
   }
+
+  val runnableProgram: ZIO[Any, Throwable, Unit] = program_v2.provideLayer(userSubscriptionLayer)
+
+  // magic
+  val runnableProgram_v2: ZIO[Any, Throwable, Unit] = program_v2.provide(
+    UserSubscription.live,
+    EmailService.live,
+    // ZIO will tell you if you're missing a layer
+    UserDatabase.live,
+    ConnectionPool.live(10),
+    // ZIO will tell you a dependency graph!
+//    ZLayer.Debug.tree,
+    ZLayer.Debug.mermaid
+  )
+
+  // magic v2
+  val userSubscriptionLayer_v2: ZLayer[Any, Nothing, UserSubscription] = ZLayer.make[UserSubscription](
+    UserSubscription.live,
+    EmailService.live,
+    // ZIO will tell you if you're missing a layer
+    UserDatabase.live,
+    ConnectionPool.live(10),
+  )
+
+  // pass through
+  val dbWithPoolLayer: ZLayer[ConnectionPool, Nothing, ConnectionPool with UserDatabase] = UserDatabase.live.passthrough
+  // service = take a dep and expose it as a value to further layers
+  val dbService: ZLayer[UserDatabase, Nothing, UserDatabase] = ZLayer.service[UserDatabase]
+  // launch = creates a ZIO that users the services and never finishes
+  val subscriptionLaunch: ZIO[EmailService with UserDatabase, Nothing, Nothing] = UserSubscription.live.launch
+  // memorization
+
+  /**
+   * Already provided services: Clock, Random, System, Console
+   */
+  val getTime = Clock.currentTime(TimeUnit.SECONDS)
+  val randomValue = Random.nextInt
+  val sysVariable = System.env("HADOOP_HOME")
+  val printlnEffect = Console.printLine("This is ZIO")
 }
