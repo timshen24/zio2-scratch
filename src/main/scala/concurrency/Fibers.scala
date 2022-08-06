@@ -1,7 +1,9 @@
 package concurrency
 
-import zio._
-import utilsScala2._
+import zio.*
+import utilsScala2.*
+
+import java.io._
 
 object Fibers extends ZIOAppDefault {
   val meaningOfLife = ZIO.succeed(42)
@@ -62,10 +64,38 @@ object Fibers extends ZIOAppDefault {
     fiber = fiber1 orElse fiber2
   } yield fiber.join
 
+  /**
+   * Exercises
+   */
+  // 1 - zip two fibers without using the zip combinators
+  // hints: create a fiber that waits for both
+  def zipFibers[E, A, B](fiber1: Fiber[E, A], fiber2: Fiber[E, B]): ZIO[Any, Nothing, Fiber[E, (A, B)]] = ???
+
+  // 2 - same thing with orElse
+  def chainFibers[E, A](fiber1: Fiber[E, A], fiber2: Fiber[E, A]): ZIO[Any, Nothing, Fiber[E, A]] = ???
+
+  // 3 - distributing a task in between many fibers
+  // spawn n fibers, count the number of words each file, then aggregate all the result together in one big number
+  // mimic mapreduce
+  def generateRandomFile(path: String): Unit = {
+    val random = scala.util.Random
+    val chars = 'a' to 'z'
+    val nWords = random.nextInt(2000) // at most 2000
+    val content = (1 to nWords)
+      .map(_ => (1 to random.nextInt(10)).map(_ => chars(random.nextInt(26))).mkString) // one word for every 1 to nWords
+      .mkString(" ")
+
+    val writer = new FileWriter(new File(path))
+    writer.write(content)
+    writer.flush()
+    writer.close()
+  }
+
   //  override def run: ZIO[Any, Any, Any] = differentThreadIO
   //  override def run: ZIO[Any, Any, Any] = runOnAnotherThread(meaningOfLife).debugThread
 //  override def run: ZIO[Any, Any, Any] = runOnAnotherThread_v2(meaningOfLife).debugThread
 //  override def run: ZIO[Any, Any, Any] = peekFiber.debugThread
 //  override def run: ZIO[Any, Any, Any] = zippedFibers.debugThread
-  override def run: ZIO[Any, Any, Any] = chainedFibers.debugThread
+//  override def run: ZIO[Any, Any, Any] = chainedFibers.debugThread
+  override def run: ZIO[Any, Any, Any] = ZIO.succeed((1 to 10).foreach(i => generateRandomFile(s"src/main/resources/testFile_$i.txt"))) // use 10 fibers
 }
