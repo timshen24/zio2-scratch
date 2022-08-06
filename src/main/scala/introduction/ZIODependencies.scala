@@ -3,6 +3,7 @@ package introduction
 import introduction.entities.Entities.*
 import zio.*
 
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 object ZIODependencies extends ZIOAppDefault {
@@ -110,19 +111,21 @@ object ZIODependencies extends ZIOAppDefault {
     ConnectionPool.live(10),
   )
 
-  // pass through
-  val dbWithPoolLayer: ZLayer[ConnectionPool, Nothing, ConnectionPool with UserDatabase] = UserDatabase.live.passthrough
+  // pass through, take the dependency and pass through the value channel
+  val dbWithPoolLayer: ZLayer[ConnectionPool, Nothing, ConnectionPool with UserDatabase] = UserDatabase.live.passthrough // 把ZLayer[ConnectionPool, Nothing, UserDatabase] 变为ZLayer[ConnectionPool, Nothing, ConnectionPool with UserDatabase]
+
   // service = take a dep and expose it as a value to further layers
   val dbService: ZLayer[UserDatabase, Nothing, UserDatabase] = ZLayer.service[UserDatabase]
-  // launch = creates a ZIO that users the services and never finishes
-  val subscriptionLaunch: ZIO[EmailService with UserDatabase, Nothing, Nothing] = UserSubscription.live.launch
-  // memorization
 
+  // launch = creates a ZIO that users the services and never finishes. For entire application that is a layer
+  val subscriptionLaunch: ZIO[EmailService with UserDatabase, Nothing, Nothing] = UserSubscription.live.launch
+
+  // memorization
   /**
-   * Already provided services: Clock, Random, System, Console
+   * Already provided services in ZIO: Clock, Random, System, Console
    */
-  val getTime = Clock.currentTime(TimeUnit.SECONDS)
-  val randomValue = Random.nextInt
-  val sysVariable = System.env("HADOOP_HOME")
-  val printlnEffect = Console.printLine("This is ZIO")
+  val getTime: UIO[Long] = Clock.currentTime(TimeUnit.SECONDS)
+  val randomValue: UIO[RuntimeFlags] = Random.nextInt
+  val sysVariable: IO[SecurityException, Option[String]] = System.env("HADOOP_HOME")
+  val printlnEffect: IO[IOException, Unit] = Console.printLine("This is ZIO")
 }
