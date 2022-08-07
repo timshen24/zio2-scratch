@@ -84,16 +84,25 @@ object Fibers extends ZIOAppDefault {
     tuple <- fiber.join
   } yield tuple
 
+  /**
+   * What if fiber1 and fiber2 has different error type E1 and E2? We have to generalize it!
+   * same implementation
+   */
+  def zipFibersGeneral[E, E1 <: E, E2 <: E, A, B](fiber1: Fiber[E1, A], fiber2: Fiber[E2, B]): ZIO[Any, Nothing, Fiber[E, (A, B)]] = {
+    val finalEffect = for {
+      v1 <- fiber1.join
+      v2 <- fiber2.join
+    } yield (v1, v2)
+    finalEffect.fork
+  }
+
   // 2 - same thing with orElse
   def chainFibers[E, A](fiber1: Fiber[E, A], fiber2: Fiber[E, A]): ZIO[Any, Nothing, Fiber[E, A]] =
-    ???
-//    for {
-//      f1 <- fiber1.await
-//      f2 <- fiber2.await
-//    } yield f1 match {
-//      case Exit.Success(value) => value
-//      case Exit.Failure(_) => f2
-//    }
+      val waitFiber1 = fiber1.join
+      val waitFiber2 = fiber2.join
+      val finalEffect = waitFiber1.orElse(waitFiber2)
+      finalEffect.fork
+
 
   // 3 - distributing a task in between many fibers
   // spawn n fibers, count the number of words each file, then aggregate all the result together in one big number
@@ -112,12 +121,43 @@ object Fibers extends ZIOAppDefault {
     writer.close()
   }
 
+  // part1 - an effect which reads one file and counts the words there
+  def countWords(path: String): UIO[Int] =
+    ZIO.succeed {
+      val source = scala.io.Source.fromFile(path)
+      val nWords = source.getLines().mkString(" ").split(" ").count(_.nonEmpty)
+      println(s"Counted $nWords in $path")
+      source.close()
+      nWords
+    }
+
+ // part2 - spin up fibers for all the files
+ def wordCountParallel(n: Int): UIO[Int] =
+   val effects: Seq[ZIO[Any, Nothing, Int]] = (1 to n)
+     .map(i => s"src/main/resources/testfile_$i.txt")
+     .map(countWords) // list of effects returning fibers
+     .map(_.fork)
+     .map((fiberEff: ZIO[Any, Nothing, Fiber[Nothing, Int]]) => fiberEff.flatMap(_.join))
+   effects.reduce { (zioa, ziob) =>
+     for {
+       a <- zioa
+       b <- ziob
+     } yield a + b
+   }
+
+  /**
+   * How to test wordCountParallel?
+    * cd src/main/resources/
+   *  find . | -xargs wc
+   */
+
   //  override def run: ZIO[Any, Any, Any] = differentThreadIO
   //  override def run: ZIO[Any, Any, Any] = runOnAnotherThread(meaningOfLife).debugThread
 //  override def run: ZIO[Any, Any, Any] = runOnAnotherThread_v2(meaningOfLife).debugThread
 //  override def run: ZIO[Any, Any, Any] = peekFiber.debugThread
 //  override def run: ZIO[Any, Any, Any] = zippedFibers.debugThread
 //  override def run: ZIO[Any, Any, Any] = chainedFibers.debugThread
-  override def run: ZIO[Any, Any, Any] = zippedFibers_v2.debugThread
+//  override def run: ZIO[Any, Any, Any] = zippedFibers_v2.debugThread
 //  override def run: ZIO[Any, Any, Any] = ZIO.succeed((1 to 10).foreach(i => generateRandomFile(s"src/main/resources/testFile_$i.txt"))) // use 10 fibers
+  override def run: ZIO[Any, Any, Any] = wordCountParallel(10).debugThread
 }
