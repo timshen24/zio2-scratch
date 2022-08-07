@@ -6,11 +6,11 @@ import utilsScala2.*
 import java.io._
 
 object Fibers extends ZIOAppDefault {
-  val meaningOfLife = ZIO.succeed(42)
-  val favLang = ZIO.succeed("Scala")
+  val meaningOfLife: ZIO[Any, Nothing, Int] = ZIO.succeed(42)
+  val favLang: ZIO[Any, Nothing, String] = ZIO.succeed("Scala")
 
   // Fiber = light weight thread
-  def createFiber: Fiber[Throwable, String] = ??? // Fibers are impossible to create manually
+  //  def createFiber: Fiber[Throwable, String] = ??? // Fibers are impossible to create manually
 
   val sameThreadIO: ZIO[Any, Nothing, (Int, String)] = for {
     mol <- meaningOfLife.debugThread
@@ -69,10 +69,31 @@ object Fibers extends ZIOAppDefault {
    */
   // 1 - zip two fibers without using the zip combinators
   // hints: create a fiber that waits for both
-  def zipFibers[E, A, B](fiber1: Fiber[E, A], fiber2: Fiber[E, B]): ZIO[Any, Nothing, Fiber[E, (A, B)]] = ???
+  def zipFibers[E, A, B](fiber1: Fiber[E, A], fiber2: Fiber[E, B]): ZIO[Any, Nothing, Fiber[E, (A, B)]] = {
+    val finalEffect = for {
+      v1 <- fiber1.join
+      v2 <- fiber2.join
+    } yield (v1, v2)
+    finalEffect.fork
+  }
+
+  val zippedFibers_v2: ZIO[Any, Nothing, (String, String)] = for {
+    fib1 <- ZIO.succeed("Result from fiber1").debugThread.fork
+    fib2 <- ZIO.succeed("Result from fiber2").debugThread.fork
+    fiber <- zipFibers(fib1, fib2)
+    tuple <- fiber.join
+  } yield tuple
 
   // 2 - same thing with orElse
-  def chainFibers[E, A](fiber1: Fiber[E, A], fiber2: Fiber[E, A]): ZIO[Any, Nothing, Fiber[E, A]] = ???
+  def chainFibers[E, A](fiber1: Fiber[E, A], fiber2: Fiber[E, A]): ZIO[Any, Nothing, Fiber[E, A]] =
+    ???
+//    for {
+//      f1 <- fiber1.await
+//      f2 <- fiber2.await
+//    } yield f1 match {
+//      case Exit.Success(value) => value
+//      case Exit.Failure(_) => f2
+//    }
 
   // 3 - distributing a task in between many fibers
   // spawn n fibers, count the number of words each file, then aggregate all the result together in one big number
@@ -97,5 +118,6 @@ object Fibers extends ZIOAppDefault {
 //  override def run: ZIO[Any, Any, Any] = peekFiber.debugThread
 //  override def run: ZIO[Any, Any, Any] = zippedFibers.debugThread
 //  override def run: ZIO[Any, Any, Any] = chainedFibers.debugThread
-  override def run: ZIO[Any, Any, Any] = ZIO.succeed((1 to 10).foreach(i => generateRandomFile(s"src/main/resources/testFile_$i.txt"))) // use 10 fibers
+  override def run: ZIO[Any, Any, Any] = zippedFibers_v2.debugThread
+//  override def run: ZIO[Any, Any, Any] = ZIO.succeed((1 to 10).foreach(i => generateRandomFile(s"src/main/resources/testFile_$i.txt"))) // use 10 fibers
 }
