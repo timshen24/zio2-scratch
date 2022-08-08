@@ -107,7 +107,7 @@ object Fibers extends ZIOAppDefault {
   // 3 - distributing a task in between many fibers
   // spawn n fibers, count the number of words each file, then aggregate all the result together in one big number
   // mimic mapreduce
-  def generateRandomFile(path: String): Unit = {
+  def generateRandomFile(path: String): Unit =
     val random = scala.util.Random
     val chars = 'a' to 'z'
     val nWords = random.nextInt(2000) // at most 2000
@@ -119,7 +119,6 @@ object Fibers extends ZIOAppDefault {
     writer.write(content)
     writer.flush()
     writer.close()
-  }
 
   // part1 - an effect which reads one file and counts the words there
   def countWords(path: String): UIO[Int] =
