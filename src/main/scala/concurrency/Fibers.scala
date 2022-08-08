@@ -158,6 +158,5 @@ object Fibers extends ZIOAppDefault {
 //  override def run: ZIO[Any, Any, Any] = zippedFibers.debugThread
 //  override def run: ZIO[Any, Any, Any] = chainedFibers.debugThread
 //  override def run: ZIO[Any, Any, Any] = zippedFibers_v2.debugThread
-//  override def run: ZIO[Any, Any, Any] = ZIO.succeed((1 to 10).foreach(i => generateRandomFile(s"src/main/resources/testFile_$i.txt"))) // use 10 fibers
-  override def run: ZIO[Any, Any, Any] = wordCountParallel(10).debugThread
+  override def run: ZIO[Any, Any, Any] = ZIO.succeed((1 to 10).foreach(i => generateRandomFile(s"src/main/resources/testFile_$i.txt"))) *> wordCountParallel(10).debugThread
 }
