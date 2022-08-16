@@ -9,7 +9,7 @@ object Variance {
 
   val myDog: Dog = Dog("Buddy")
   val myVet: Vet[Dog] = (animal: Animal) => {
-    println(s"You will be fine, ${animal}")
+    println(s"You will be fine, $animal")
     true
   }
   myVet.heal(myDog)
