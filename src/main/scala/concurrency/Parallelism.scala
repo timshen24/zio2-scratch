@@ -82,6 +82,7 @@ object Parallelism extends ZIOAppDefault {
 
   val allWords = ZIO.reduceAllPar(ZIO.succeed(0), (1 to 10).map(i=>countWords(s"src/main/resources/testfile_$i.txt").fork))
 
+//  def run = combinedPar.debugThread
   //  def run = collectedValues.debugThread
 //  def run = collectedValues.debugThread
   def run = wordCountParallel(10).debugThread
