@@ -53,7 +53,7 @@ object ZIOEffects {
   // 1 - sequence two ZIOs and take the value of the last one
   def sequenceTakeLast[R, E, A, B](zioa: ZIO[R, E, A], ziob: ZIO[R, E, B]): ZIO[R, E, B] = {
     zioa.flatMap(_ => ziob.map(b => b))
-    zioa *> ziob
+//    zioa *> ziob
   }
 
   def sequenceTakeLastElegantly[R, E, A, B](zioa: ZIO[R, E, A], ziob: ZIO[R, E, B]): ZIO[R, E, B] = {
