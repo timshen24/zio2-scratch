@@ -13,7 +13,7 @@ object ZIOErrorHandling extends ZIOAppDefault {
   val failedWithDescription: ZIO[Any, String, Nothing] = failedWithThrowable.mapError(_.getMessage)
 
   // attempt: run an effect that might throw an Exception
-  val badZIO: ZIO[Any, Nothing, RuntimeFlags] = ZIO.succeed {
+  val badZIO: ZIO[Any, Nothing, Int] = ZIO.succeed {
     println("Trying something")
     val string: String = null
     string.length
@@ -236,7 +236,8 @@ object ZIOErrorHandling extends ZIOAppDefault {
     lookupProfile(userId).some
 
   override def run: ZIO[Any, Any, Any] = {
-    failureCauseExposed.debug
+    endpointCallWithDefects.debug
+//    failureCauseExposed.debug
     //    failureCauseHidden.debug
     //    foldedWithCause.debug
   }

@@ -24,7 +24,7 @@ object ZIOExercise {
     def flatMap[R1 <: R, E1 >: E, B](f: A => MyZIO[R1, E1, B]): MyZIO[R1, E1, B] = {
       MyZIO(r => unsafeRun(r) match {
         case Left(e) => Left(e)
-        case Right(v) =>f(v).unsafeRun(r)})
+        case Right(v) => f(v).unsafeRun(r)})
     }
   }
 
