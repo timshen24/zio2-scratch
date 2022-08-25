@@ -236,10 +236,11 @@ object ZIOErrorHandling extends ZIOAppDefault {
     lookupProfile(userId).some
 
   override def run: ZIO[Any, Any, Any] = {
-    endpointCallWithDefects.debug
+//    anAttempt.debug
+//    endpointCallWithDefects.debug
 //    failureCauseExposed.debug
     //    failureCauseHidden.debug
-    //    foldedWithCause.debug
+        foldedWithCause.debug
   }
 
 }
