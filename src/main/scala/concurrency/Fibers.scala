@@ -69,6 +69,7 @@ object Fibers extends ZIOAppDefault {
    */
   // 1 - zip two fibers without using the zip combinators
   // hints: create a fiber that waits for both
+  // 因为没有掌握后面的知识，现在只能这么做
   def zipFibers[E, A, B](fiber1: Fiber[E, A], fiber2: Fiber[E, B]): ZIO[Any, Nothing, Fiber[E, (A, B)]] = {
     val finalEffect = for {
       v1 <- fiber1.join
@@ -157,5 +158,7 @@ object Fibers extends ZIOAppDefault {
 //  override def run: ZIO[Any, Any, Any] = zippedFibers.debugThread
 //  override def run: ZIO[Any, Any, Any] = chainedFibers.debugThread
 //  override def run: ZIO[Any, Any, Any] = zippedFibers_v2.debugThread
+
+//  override def run: ZIO[Any, Any, Any] = peekFiber.debugThread // None
   override def run: ZIO[Any, Any, Any] = ZIO.succeed((1 to 10).foreach(i => generateRandomFile(s"src/main/resources/testFile_$i.txt"))) *> wordCountParallel(10).debugThread
 }

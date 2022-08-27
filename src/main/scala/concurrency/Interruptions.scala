@@ -13,7 +13,8 @@ object Interruptions extends ZIOAppDefault {
   val interruption = for {
     fib <- zioWithTime.fork
 
-    /** also an effect. This blocks the interruption fiber until the calling fiber is either done or interrupted * */
+    /** also an effect. This blocks the interruption （this）fiber until the calling fiber is either done or interrupted
+     * * */
     _ <- ZIO.sleep(1.second) *> ZIO.succeed("interrupting").debugThread *> fib.interrupt
     _ <- ZIO.succeed("Interruption successful").debugThread
     result <- fib.join
@@ -37,7 +38,8 @@ object Interruptions extends ZIOAppDefault {
   // outliving a parent fiber
   val parentEffect = ZIO.succeed("spawning fiber ").debugThread *>
     //zioWithTime.fork *> // child fibers will be automatically interrupted if parent fiber is completed for any reason
-    zioWithTime.forkDaemon *> // then this fiber will be the fiber of the MAIN fiber, not its parent's
+    zioWithTime.forkDaemon *> // to avoid this, you can use forkDaemon, then this fiber will be the fiber of the MAIN
+    // fiber, not its parent's
     ZIO.sleep(1.second) *>
     ZIO.succeed("parent successful").debugThread
 
@@ -61,7 +63,7 @@ object Interruptions extends ZIOAppDefault {
     zio.onInterrupt(ZIO.succeed("been interrupted")).race(ZIO.sleep(time)).fork
     for {
       fib <- zio.fork
-      _ <- (ZIO.sleep(time) *> fib.interrupt).fork
+      _ <- (ZIO.sleep(time) *> fib.interrupt).fork // so as to not block the main fiber
       result <- fib.join
     } yield result
 
