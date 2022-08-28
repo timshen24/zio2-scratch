@@ -60,7 +60,8 @@ object Interruptions extends ZIOAppDefault {
    */
   // 1 - implement a timeout function
   def timeout[R, E, A](zio: ZIO[R, E, A], time: Duration): ZIO[R, E, A] =
-    zio.onInterrupt(ZIO.succeed("been interrupted")).race(ZIO.sleep(time)).fork
+    // 以下二选一
+//    zio.onInterrupt(ZIO.succeed("been interrupted")).race(ZIO.sleep(time)).fork
     for {
       fib <- zio.fork
       _ <- (ZIO.sleep(time) *> fib.interrupt).fork // so as to not block the main fiber
@@ -83,7 +84,11 @@ object Interruptions extends ZIOAppDefault {
     ZIO.succeed("Starting ...").debugThread *> ZIO.sleep(2.seconds) *> ZIO.succeed("I made it!").debugThread, 1.second
   ).debugThread
 
-  //  def run = testRace
+  def timeout_V2[R, E, A](zio: ZIO[R, E, A], time: Duration): ZIO[R, E, Option[A]] = {
+    val optionalZio = zio.map(Some(_))
+    optionalZio.race(ZIO.succeed(Option.empty[A]).delay(time))
+  }
+    def run = testRace
 //  def run = testTimeOut
-  def run = testTimeOut_v2
+//  def run = testTimeOut_v2
 }
