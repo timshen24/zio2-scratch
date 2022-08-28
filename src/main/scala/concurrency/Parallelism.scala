@@ -73,7 +73,7 @@ object Parallelism extends ZIOAppDefault {
     }
 
   def wordCountParallel(n: Int): UIO[Int] =
-    val effects = (1 to n).map(i=>countWords(s"src/main/resources/testfile_$i.txt"))
+    val effects: Seq[UIO[Int]] = (1 to n).map(i=>countWords(s"src/main/resources/testfile_$i.txt"))
     //v1 collectAllPar
     ZIO.collectAllPar(effects).map(_.sum)
     //v2 mergeAllPar

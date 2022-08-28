@@ -10,7 +10,7 @@ object Resources extends ZIOAppDefault {
 
   // finalizers
   def unsafeMethod(): Int = throw new RuntimeException("Not an int here for you")
-  val anAttempt = ZIO.attempt(unsafeMethod())
+  val anAttempt: ZIO[Any, Throwable, Int] = ZIO.attempt(unsafeMethod())
 
   // finalizers
   val attemptWithFinalizer = anAttempt.ensuring(ZIO.succeed("finalizer").debugThread)
@@ -33,7 +33,7 @@ object Resources extends ZIOAppDefault {
     fib <- (conn.open() *> ZIO.sleep(300.seconds)).fork
     _ <- ZIO.sleep(1.second) *> ZIO.succeed("interrupting").debugThread *> fib.interrupt
     _ <- fib.join
-  } yield () // resource leak
+  } yield () // resource leak as there's no close method
 
   val correctFetchUrl = for {
     conn <- Connection.create("rockthejvm.com")
