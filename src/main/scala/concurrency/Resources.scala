@@ -50,15 +50,16 @@ object Resources extends ZIOAppDefault {
     - acquiring cannot be interrupted
     - all finalizers are guaranteed to run
    */
-  val cleanConnection = ZIO.acquireRelease(Connection.create("rockthejvm.com"))(_.close())
-  val fetchWithResource = for {
+  val cleanConnection: ZIO[Any with Scope, Nothing, Connection] = ZIO.acquireRelease(Connection.create("rockthejvm" +
+    ".com"))(_.close())
+  val fetchWithResource: ZIO[Any with Scope, Nothing, Unit] = for {
     conn <- cleanConnection
     fib <- (conn.open() *> ZIO.sleep(300.seconds)).fork
     _ <- ZIO.sleep(1.second) *> ZIO.succeed("interrupting").debugThread *> fib.interrupt
     _ <- fib.join
   } yield ()
 
-  val fetchWithScopedResource = ZIO.scoped(fetchWithResource)
+  val fetchWithScopedResource = ZIO.scoped(fetchWithResource) // wrap with ZIO.scoped to eliminate the Scope dependency
 
   // acquireReleaseWith
   val cleanConnection_v2 = ZIO.acquireReleaseWith(
@@ -112,7 +113,8 @@ object Resources extends ZIOAppDefault {
     }
 
   // for nested resource, acquireRelease is obviously better!
-  def connFromConfig_v2(path: String): UIO[Unit] = ZIO.scoped { // notic the scoped here!
+  def connFromConfig_v2(path: String): UIO[Unit] = ZIO.scoped { // notice the scoped here! for multiple resources,
+    // they all have the same lifecycle now!
     for {
       scanner <- ZIO.acquireRelease(openFileScanner(path))(scanner => ZIO.succeed("closing file").debugThread *> ZIO.succeed(scanner.close()))
       conn <- ZIO.acquireRelease(Connection.create(scanner.nextLine()))(_.close())
@@ -123,8 +125,8 @@ object Resources extends ZIOAppDefault {
   //  def run = attemptWith2Finalizer
 //  def run = fetchUrl // unsafe
 //  def run = correctFetchUrl // Safe
-//  def run = fetchWithResource // Safe
+  def run = fetchWithResource // Safe
 //  def run = fetchWithResource_v2 // Safe
 //  def run = testInterruptFileDisplay
-  def run = connFromConfig_v2("...")
+//  def run = connFromConfig_v2("...")
 }
