@@ -58,7 +58,8 @@ object BlockingEffects extends ZIOAppDefault {
   val sleeping = ZIO.sleep(1.second) // SEMANTICALLY blocking, interruptible
   // yield
   val chainedZIO = (1 to 1000).map(i => ZIO.succeed(i)).reduce(_.debugThread *> _.debugThread)
-  val yieldingDemo = (1 to 1000).map(i => ZIO.succeed(i)).reduce(_.debugThread *> ZIO.yieldNow *> _.debugThread)
+  val yieldingDemo = (1 to 1000).map(i => ZIO.succeed(i)).reduce(_.debugThread *> ZIO.yieldNow *> _.debugThread) //
+  // 交出线程控制权，重新调度新线程
 
 //  def run = program
 //  def run = aBlockingZIO

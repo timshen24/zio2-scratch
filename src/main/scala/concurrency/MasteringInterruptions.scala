@@ -127,6 +127,7 @@ object MasteringInterruptions extends ZIOAppDefault {
 //  def run = cancellationOfDoom
 //  def run = noCancellationOfDoom // highly recommended
 //  def run = authProgram
+//  def run = authProgram_v2
   def run = threeStepProgram
 
 }
