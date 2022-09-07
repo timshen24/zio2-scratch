@@ -17,14 +17,14 @@ object Mutex {
 
   def make: UIO[Mutex] = Ref.make(unlocked)/*UIO[Ref[State]]*/.map(createInterruptibleMutex)
 
-  def createInterruptibleMutex(state: Ref[State]) =
+  def createInterruptibleMutex(state: Ref[State]): Mutex =
     new Mutex {
       /*
         Change the state of the Ref
         - if the mutex is unlocked, lock it
         - if the mutex is locked, state becomes (true, queue + new signal) and WAIT on that signal
        */
-      override def acquire = ZIO.uninterruptibleMask { restore =>
+      override def acquire: UIO[Unit] = ZIO.uninterruptibleMask { restore =>
         Promise.make[Nothing, Unit].flatMap { signal =>
 
           val cleanup: UIO[Unit] = state.modify {
@@ -115,7 +115,7 @@ object MutexPlayground extends ZIOAppDefault {
     val task = for {
       _ <- ZIO.succeed(s"[task $id] waiting for mutex...").debugThread
       _ <- mutex.acquire
-      // critical region start
+      // critical region start critical region can only be entered by one fiber at a time
       _ <- ZIO.succeed(s"[task $id] mutex acquired, working...").debugThread
       result <- workInCriticalRegion().onInterrupt(mutex.release)
       _ <- ZIO.succeed(s"[task $id] got result: $result, releasing mutex").debugThread
