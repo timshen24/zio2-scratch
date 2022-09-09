@@ -11,7 +11,7 @@ object Refs extends ZIOAppDefault {
   val atomicMOL: ZIO[Any, Nothing, Ref[Int]] = Ref.make(42)
 
   // obtain a value
-  val mol = atomicMOL.flatMap { ref =>
+  val mol: ZIO[Any, Nothing, Int] = atomicMOL.flatMap { ref =>
     ref.get // returns a UIO[Int], thread-safe getter
   }
 

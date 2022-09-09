@@ -30,16 +30,20 @@ object Mutex {
           val cleanup: UIO[Unit] = state.modify {
             case State(flag, waiting) =>
               val newWaiting = waiting.filterNot(_ eq signal)
-              // blocked only if newWaiting != waiting => release the mutex
+              // can only be blocked only if newWaiting != waiting => release the mutex
               val wasBlocked = newWaiting != waiting
               val decision = if (wasBlocked) ZIO.unit else release
 
               decision -> State(flag, newWaiting)
           }.flatten
 
+          /**
+           * introduce cleanup in onInterrupt
+           */
           state.modify {
             case State(false, _) => ZIO.unit -> State(locked = true, Queue())
-            case State(true, waiting) => restore(signal.await).onInterrupt(cleanup) -> State(locked = true, waiting.enqueue(signal))
+            case State(true, waiting) => restore(signal.await).onInterrupt(cleanup) -> State(locked = true, waiting
+              .enqueue(signal))
           }.flatten
         }
       }
@@ -77,6 +81,8 @@ object Mutex {
       }
 
       /*
+        The problem:
+        if the mutex is not acquired, it must not be called with release
         Change the state of the Ref
         - if the mutex is unlocked, leave the state unchanged
         - if the mutex is locked
@@ -172,6 +178,6 @@ object MutexPlayground extends ZIOAppDefault {
   } yield ()
 
 //  def run = demoNonLockingTasks()
-  def run = demoLockingTasks()
-//  def run = demoInterruptingTasks()
+//  def run = demoLockingTasks()
+  def run = demoInterruptingTasks()
 }
