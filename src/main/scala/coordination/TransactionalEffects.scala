@@ -141,18 +141,19 @@ object TransactionalEffects extends ZIOAppDefault {
   // keys, values
 
   // TQueue
-  val tQueueBounded: USTM[TQueue[Int]] = TQueue.bounded[Int](5)
-  // offer/offerAll
+  val tQueueBounded: USTM[TQueue[Int]] = TQueue.bounded[Int](5) // 限制大小的Queue
+  // offer/offerAll push API
   val demoOffer: USTM[TQueue[Int]] =
     for {
       tQueue <- tQueueBounded
       _ <- tQueue.offerAll(List(1,2,3,4,5,6))
     } yield tQueue
-  // take/takeAll
+  // take/takeAll pull API
   val demoTakeAll: USTM[Chunk[Int]] = for {
     tQueue <- demoOffer
     elems <- tQueue.takeAll
   } yield elems
+  // Chunk can:
   // takeOption, peek
   // toList, toVector
   // size
@@ -205,10 +206,10 @@ object TransactionalEffects extends ZIOAppDefault {
   val reentrantLockEffect = TReentrantLock.make
   val demoReentrantLock = for {
     lock <- reentrantLockEffect
-    _ <- lock.acquireRead // acquires the read lock
+    _ <- lock.acquireRead // acquires the read lock， blocks the writer
     _ <- STM.succeed(100) // critical section, only those that acquire read lock can access
-    rl <- lock.readLocked // status of the lock, whether is read-locked, true in this case
-    wl <- lock.writeLocked // same for writer
+    rl <- lock.readLocked // status of the lock, whether is read-locked, return true in this case.
+    wl <- lock.writeLocked // same for writer, return false in this case.
   } yield ()
 
   def demoReadersWriters(): UIO[Unit] = {
@@ -235,6 +236,9 @@ object TransactionalEffects extends ZIOAppDefault {
       _ <- lock.releaseWrite.commit
     } yield ()
 
+    /**
+     * All reader forks must be finished and released before starting writer lock and finishes and releases writer job!
+     */
     for {
       lock <- TReentrantLock.make.commit
       readersFib <- ZIO.collectAllParDiscard((1 to 10).map(read(_, lock))).fork
@@ -245,6 +249,6 @@ object TransactionalEffects extends ZIOAppDefault {
   }
 
 //  def run = loop(exploitBuggyBank(), 1)
-  def run = loop(cannotExploit(), 1)
-//  def run = demoReadersWriters()
+//  def run = loop(cannotExploit(), 1)
+  def run = demoReadersWriters()
 }
