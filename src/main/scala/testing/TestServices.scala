@@ -111,7 +111,8 @@ object AspectsSpec extends ZIOSpecDefault {
       } yield v
 
       assertZIO(effect)(Assertion.equalTo(42))
-    } @@ timeout(10.millis)/* @@ eventually @@ nonFlaky(5) @@ repeats(5) @@retry(5)*/ @@ timed // 如果10毫秒没执行完，就会超时失败
+    } @@ timeout(10.millis)/* @@ eventually @@ nonFlaky(5) @@ repeats(5) @@retry(5) @@ ignore π*/ @@ timed //
+    // 如果10毫秒没执行完，就会超时失败
     /*
       Aspects:
       - timeout(duration)
