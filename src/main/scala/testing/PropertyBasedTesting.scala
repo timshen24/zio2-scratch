@@ -8,7 +8,7 @@ object PropertyBasedTesting extends ZIOSpecDefault {
 
   // "proofs"
   // for all x,y,z, we have (x + y) + z == x + (y + z)
-  // shrinking
+  // shrinking, show the easiest example not holding true
   def spec = test("property-based-testing basics") {
     check(Gen.int, Gen.int, Gen.int) { (x, y, z) =>
       assertTrue(((x + y) + z) == (x - (y + z)))
