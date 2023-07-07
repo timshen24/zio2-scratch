@@ -126,6 +126,8 @@ object ZIOEffects {
   def fibZIO(n: Int): UIO[BigInt] =
     if (n < 3) ZIO.succeed(1)
     else for {
+      // 必须delay这句话的evaluation，因为它相当于fibZIO(49999).flatMap(n1 => fibZIO(49998).map(n2 => n1 + n2)),
+      // 如果不delay，就会不停在堆栈上evaluate fibZIO(49998).flatMap(...), fibZIO(49997).flatMap(...) 最后栈溢出
       n1 <- ZIO.suspendSucceed(fibZIO(n - 1))
       n2 <- fibZIO(n - 2)
     } yield n1 + n2

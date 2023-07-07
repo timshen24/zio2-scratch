@@ -2,7 +2,7 @@ package introduction
 
 import scala.io.StdIn._
 
-object ZIOExercise {
+object MyIO {
   case class MyIO[A](unsafeRun:() => A) {
     def map[B](f: A => B): MyIO[B] = {
       MyIO(() => f(unsafeRun()))
@@ -30,15 +30,15 @@ object ZIOExercise {
 
   def someDuration(): Unit = Thread.sleep(3000)
 
-  /**
-   * Create some IO which:
-   * 1. measure the current time of the system
-   * 2. measure the duration of a computation
-   *  - use exercise 1
-   * 3. read something from the console
-   * 4. print something to the console (e.g. "What's your name?"), then read, then print a welcome message
-   */
   def main(args: Array[String]): Unit = {
+    /**
+     * Create some IO which:
+     * 1. measure the current time of the system
+     * 2. measure the duration of a computation
+     *  - use exercise 1
+     *    3. read something from the console
+     *    4. print something to the console (e.g. "What's your name?"), then read, then print a welcome message
+     */
     val myIO1: MyIO[Long] = MyIO(() => System.currentTimeMillis())
 
     val myIO2: MyIO[Long] = for {
@@ -47,6 +47,15 @@ object ZIOExercise {
       endTime <- myIO1
     } yield endTime - startTime
     println(myIO2.unsafeRun())
+
+    val myIO2Equivalent = MyIO(
+      () =>
+        val startTime = System.currentTimeMillis()
+        someDuration()
+        val endTime = System.currentTimeMillis()
+        (endTime - startTime, ())
+    )
+    println(myIO2Equivalent.unsafeRun())
 
     val myIO3With4: MyIO[Unit] = for {
       _ <- MyIO(() => println("Please enter your name:"))
