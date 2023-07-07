@@ -131,7 +131,8 @@ object ZIOEffects {
     } yield n1 + n2
 
   def main(args: Array[String]): Unit = {
-    Unsafe.unsafe {
+    val runtime = Runtime.default
+    Unsafe.unsafe { implicit unsafe =>
       //      val mol = Runtime.default.unsafe.run(meaningOfLife)
       //      println(mol)
       val firstEffect = ZIO.succeed {
@@ -146,11 +147,11 @@ object ZIOEffects {
         2
       }
 
-      println(Runtime.default.unsafe.run(sequenceTakeLast(firstEffect, secondEffect)))
-      println(Runtime.default.unsafe.run(sequenceTakeFirst(firstEffect, secondEffect)))
+      println(runtime.unsafe.run(sequenceTakeLast(firstEffect, secondEffect)))
+      println(runtime.unsafe.run(sequenceTakeFirst(firstEffect, secondEffect)))
 //      println(Runtime.default.unsafe.run(endlessLoop_2))
-      println(Runtime.default.unsafe.run(sumZIO(20)))
-      println(Runtime.default.unsafe.run(fibZIO(50000)))
+      println(runtime.unsafe.run(sumZIO(20)))
+      println(runtime.unsafe.run(fibZIO(50000)))
     }
 
   }
